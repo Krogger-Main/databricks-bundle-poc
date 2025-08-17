@@ -1,20 +1,11 @@
-# Databricks notebook
+# Databricks notebook source
 dbutils.widgets.text("catalog", "hive_metastore")
-dbutils.widgets.text("schema", "demo")
-
+dbutils.widgets.text("schema", "demo_dev")
 catalog = dbutils.widgets.get("catalog")
-schema  = dbutils.widgets.get("schema")
+schema = dbutils.widgets.get("schema")
 
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
-
-# Read raw
+# COMMAND ----------
+# simple transform step to clean/prepare data
 df = spark.table(f"{catalog}.{schema}.sales_raw")
-
-# Simple transform: add total_amount
-from pyspark.sql.functions import col, round as sql_round
-df_tr = df.withColumn("total_amount", sql_round(col("qty") * col("price"), 2))
-
-# Write
-df_tr.write.mode("overwrite").format("delta").saveAsTable(f"{catalog}.{schema}.sales_curated")
-
-print("Wrote table:", f"{catalog}.{schema}.sales_curated")
+df = df.withColumn("amount_norm", df.amount * 1.0)  # placeholder transform
+df.createOrReplaceTempView("sales_prepared")
