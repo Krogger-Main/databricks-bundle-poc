@@ -1,7 +1,6 @@
 bundle:
   name: dbx-bundle-poc
 
-# (root_path is optional; keeping it only for bundle state)
 workspace:
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
@@ -30,9 +29,8 @@ resources:
         - task_key: create_demo_table
           job_cluster_key: jc
           notebook_task:
-            # 👇 run from the repo snapshot (no workspace copy needed)
             source: GIT
-            notebook_path: notebooks/00_create_demo_table.sql
+            notebook_path: notebooks/00_create_demo_table.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
@@ -54,7 +52,7 @@ resources:
           job_cluster_key: jc
           notebook_task:
             source: GIT
-            notebook_path: notebooks/20_transform_sales.sql
+            notebook_path: notebooks/20_transform_sales.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
