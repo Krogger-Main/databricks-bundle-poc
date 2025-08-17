@@ -1,0 +1,7 @@
+targets:
+  prod:
+    variables:
+      catalog: hive_metastore
+      schema: demo_prod
+    overrides:
+      resources.jobs.etl_demo_job.name: dbx-bundle-poc-prod-etl

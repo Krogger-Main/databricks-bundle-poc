@@ -1,0 +1,7 @@
+targets:
+  qa:
+    variables:
+      catalog: hive_metastore   # use UC catalog if available
+      schema: demo_qa
+    overrides:
+      resources.jobs.etl_demo_job.name: dbx-bundle-poc-qa-etl

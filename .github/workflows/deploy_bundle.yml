@@ -1,0 +1,77 @@
+name: Deploy Databricks Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Environment to deploy (dev | qa | prod)"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, qa, prod]
+      run_job:
+        description: "Run the job after deploy?"
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Databricks CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install databricks-cli
+
+      # Map host/token by target
+      - name: Set env based on target
+        id: set-env
+        run: |
+          TARGET="${{ github.event.inputs.target }}"
+
+          if [ "$TARGET" = "dev" ]; then
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_DEV_HOST }}" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_DEV_TOKEN }}" >> $GITHUB_ENV
+          elif [ "$TARGET" = "qa" ]; then
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_QA_HOST }}" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_QA_TOKEN }}" >> $GITHUB_ENV
+          elif [ "$TARGET" = "prod" ]; then
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_PROD_HOST }}" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_PROD_TOKEN }}" >> $GITHUB_ENV
+          else
+            echo "Unknown target: $TARGET"; exit 1
+          fi
+          echo "TARGET=$TARGET" >> $GITHUB_ENV
+
+      - name: Validate bundle
+        env:
+          DATABRICKS_HOST: ${{ env.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN }}
+        run: |
+          databricks bundle validate --target "${TARGET}"
+
+      - name: Deploy bundle
+        env:
+          DATABRICKS_HOST: ${{ env.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN }}
+        run: |
+          databricks bundle deploy --target "${TARGET}"
+
+      - name: Optionally run the job
+        if: ${{ github.event.inputs.run_job == 'true' }}
+        env:
+          DATABRICKS_HOST: ${{ env.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN }}
+        run: |
+          databricks bundle run etl_demo_job --target "${TARGET}" --wait
