@@ -39,12 +39,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt || true
 
-      # 4) Install NEW Databricks CLI (bundle support) dynamically via GitHub Releases API
+      # 4) Install NEW Databricks CLI (bundle support) via GitHub Releases (zip/tar.gz safe)
       - name: Install Databricks CLI (new)
         run: |
           set -euo pipefail
           sudo apt-get update -y
-          sudo apt-get install -y jq unzip tar
+          sudo apt-get install -y jq unzip tar file
 
           # Get latest linux_amd64 asset URL (zip or tar.gz)
           ASSET_URL="$(curl -s https://api.github.com/repos/databricks/cli/releases/latest \
@@ -54,29 +54,37 @@ jobs:
             echo "❌ Could not determine Databricks CLI asset URL from GitHub Releases."
             exit 1
           fi
-
           echo "Downloading Databricks CLI from: $ASSET_URL"
-          mkdir -p "$HOME/.databricks/bin"
+
+          # Download
           curl -L -o /tmp/databricks_cli_asset "$ASSET_URL"
 
-          # Extract (supports .zip or .tar.gz)
-          FILETYPE="$(file -b --mime-type /tmp/databricks_cli_asset)"
+          # Extract to temp folder
+          mkdir -p /tmp/dbc_extracted
           if [[ "$ASSET_URL" == *.zip ]]; then
-            unzip -o /tmp/databricks_cli_asset -d "$HOME/.databricks/bin"
-          elif [[ "$ASSET_URL" == *.tar.gz ]]; then
-            tar -xzf /tmp/databricks_cli_asset -C "$HOME/.databricks/bin"
+            unzip -o /tmp/databricks_cli_asset -d /tmp/dbc_extracted
           else
-            # fallback by mime
-            if [[ "$FILETYPE" == "application/zip" ]]; then
-              unzip -o /tmp/databricks_cli_asset -d "$HOME/.databricks/bin"
-            else
-              tar -xzf /tmp/databricks_cli_asset -C "$HOME/.databricks/bin"
-            fi
+            tar -xzf /tmp/databricks_cli_asset -C /tmp/dbc_extracted
           fi
 
+          # Find the binary regardless of nested structure
+          BIN_PATH="$(find /tmp/dbc_extracted -type f -name databricks | head -n1)"
+          if [ -z "$BIN_PATH" ]; then
+            echo "❌ Could not find 'databricks' binary in extracted assets."
+            find /tmp/dbc_extracted -maxdepth 3 -type f -print
+            exit 1
+          fi
+
+          # Install to ~/.databricks/bin and make executable
+          mkdir -p "$HOME/.databricks/bin"
+          cp "$BIN_PATH" "$HOME/.databricks/bin/databricks"
           chmod +x "$HOME/.databricks/bin/databricks"
+
+          # Verify NOW using full path (PATH updates only apply in next steps)
+          "$HOME/.databricks/bin/databricks" version
+
+          # Make available to subsequent steps
           echo "$HOME/.databricks/bin" >> $GITHUB_PATH
-          databricks version
 
       # 5) Map secrets to env based on target and export globally (YOUR secret names kept)
       - name: Set environment variables
