@@ -9,19 +9,12 @@ on:
         default: "dev"
         type: choice
         options: [dev, qa, prod]
-
       run_job:
         description: "Run the job after deploy?"
         required: true
         default: "true"
         type: choice
         options: ["true", "false"]
-
-      job_name:
-        description: "Job to run after deploy (if run_job=true)"
-        required: true
-        default: "etl_demo_job"
-        type: string
 
 jobs:
   deploy:
@@ -32,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Setup Python with pip cache using requirements.txt
+      # 2) Setup Python (cache is fine even if requirements.txt is empty)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -40,19 +33,20 @@ jobs:
           cache: "pip"
           cache-dependency-path: "requirements.txt"
 
-      # 3) Install Python deps
+      # 3) Install Python deps (optional for bundles)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt || true
 
-      # 4) Install NEW Databricks CLI (bundle support)
+      # 4) Install NEW Databricks CLI from GitHub releases
       - name: Install Databricks CLI (new)
         run: |
           set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y jq unzip tar file
 
+          # Get latest linux_amd64 asset URL (zip or tar.gz)
           ASSET_URL="$(curl -s https://api.github.com/repos/databricks/cli/releases/latest \
             | jq -r '.assets[] | select(.name | test("linux_amd64\\.(zip|tar\\.gz)$")) | .browser_download_url' | head -n1)"
 
@@ -63,6 +57,7 @@ jobs:
           echo "Downloading Databricks CLI from: $ASSET_URL"
 
           curl -L -o /tmp/databricks_cli_asset "$ASSET_URL"
+
           mkdir -p /tmp/dbc_extracted
           if [[ "$ASSET_URL" == *.zip ]]; then
             unzip -o /tmp/databricks_cli_asset -d /tmp/dbc_extracted
@@ -80,31 +75,41 @@ jobs:
           mkdir -p "$HOME/.databricks/bin"
           cp "$BIN_PATH" "$HOME/.databricks/bin/databricks"
           chmod +x "$HOME/.databricks/bin/databricks"
+
+          # Verify immediately
           "$HOME/.databricks/bin/databricks" version
+
+          # Make available to subsequent steps
           echo "$HOME/.databricks/bin" >> $GITHUB_PATH
 
-      # 5) Map secrets to env based on target
+      # 5) Map secrets by target -> export to env (fixed)
       - name: Set environment variables
         run: |
           TARGET="${{ github.event.inputs.target }}"
           echo "TARGET=$TARGET" >> $GITHUB_ENV
 
+          # Load secrets to local vars first
           if [ "$TARGET" = "dev" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV }}"   >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_DEV }}" >> $GITHUB_ENV
+            DB_HOST='${{ secrets.DATABRICKS_HOST_DEV }}'
+            DB_TOKEN='${{ secrets.DATABRICKS_TOKEN_DEV }}'
           elif [ "$TARGET" = "qa" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_QA }}"    >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}"  >> $GITHUB_ENV
+            DB_HOST='${{ secrets.DATABRICKS_HOST_QA }}'
+            DB_TOKEN='${{ secrets.DATABRICKS_TOKEN_QA }}'
           elif [ "$TARGET" = "prod" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_PROD }}"  >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}" >> $GITHUB_ENV
+            DB_HOST='${{ secrets.DATABRICKS_HOST_PROD }}'
+            DB_TOKEN='${{ secrets.DATABRICKS_TOKEN_PROD }}'
           else
             echo "❌ Unknown target: $TARGET"; exit 1
           fi
 
-          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+          # Sanity check in this step
+          if [ -z "$DB_HOST" ] || [ -z "$DB_TOKEN" ]; then
             echo "❌ Missing DATABRICKS_* secrets for target '$TARGET'"; exit 1
           fi
+
+          # Export for the next steps
+          echo "DATABRICKS_HOST=$DB_HOST"   >> $GITHUB_ENV
+          echo "DATABRICKS_TOKEN=$DB_TOKEN" >> $GITHUB_ENV
 
       # 6) Validate bundle
       - name: Validate bundle
@@ -114,7 +119,7 @@ jobs:
       - name: Deploy bundle
         run: databricks bundle deploy --target "$TARGET"
 
-      # 8) Optionally run the job (job_name parameterized)
+      # 8) Optionally run the job (respects your run_job input)
       - name: Run job after deploy
         if: ${{ github.event.inputs.run_job == 'true' }}
-        run: databricks bundle run "${{ github.event.inputs.job_name }}" --target "$TARGET" --wait
+        run: databricks bundle run etl_demo_job --target "$TARGET" --wait
