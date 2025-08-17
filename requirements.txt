@@ -1,3 +1,2 @@
 # Databricks bundles need both CLI v0.205+ and SDK
-databricks-cli>=0.205.0
 databricks-sdk>=0.30.0
