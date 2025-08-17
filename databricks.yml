@@ -1,11 +1,10 @@
 bundle:
   name: dbx-bundle-poc
 
+# (root_path is optional; keeping it only for bundle state)
 workspace:
-  # Use your actual workspace username/email here
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
-# Reusable vars
 variables:
   catalog:
     default: hive_metastore
@@ -13,12 +12,6 @@ variables:
     default: demo
 
 resources:
-  # ✅ Sync local notebooks to the workspace
-  directories:
-    notebooks_dir:
-      source: notebooks
-      path: ${workspace.root_path}/notebooks
-
   jobs:
     etl_demo_job:
       name: ${bundle.name}-${bundle.target}-etl
@@ -37,8 +30,9 @@ resources:
         - task_key: create_demo_table
           job_cluster_key: jc
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.sql
-            source: WORKSPACE
+            # 👇 run from the repo snapshot (no workspace copy needed)
+            source: GIT
+            notebook_path: notebooks/00_create_demo_table.sql
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
@@ -48,8 +42,8 @@ resources:
             - task_key: create_demo_table
           job_cluster_key: jc
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.py
-            source: WORKSPACE
+            source: GIT
+            notebook_path: notebooks/10_etl_demo.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
@@ -59,8 +53,8 @@ resources:
             - task_key: etl_demo
           job_cluster_key: jc
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.sql
-            source: WORKSPACE
+            source: GIT
+            notebook_path: notebooks/20_transform_sales.sql
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
