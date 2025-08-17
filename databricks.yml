@@ -1,75 +1,71 @@
 bundle:
   name: dbx-bundle-poc
 
+# Put bundle under your user folder (change to your workspace username/email)
 workspace:
-  # Where bundle files will be copied to in the workspace
-  root_path: /Shared/${bundle.name}/${bundle.target}
-  files:
-    - source: notebooks
-      destination: ${workspace.root_path}/notebooks
+  root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
-# Reusable variables (overridden per-target in conf/*.yml)
 variables:
   catalog:
-    default: hive_metastore    # set to 'main' if using UC
+    default: hive_metastore
   schema:
     default: demo
 
+# ✅ Sync local notebooks to the workspace
 resources:
+  directories:
+    notebooks_dir:
+      source: notebooks
+      path: ${workspace.root_path}/notebooks
+
   jobs:
     etl_demo_job:
       name: ${bundle.name}-${bundle.target}-etl
       tags:
         env: ${bundle.target}
-      tasks:
-        - task_key: create_demo_table
-          notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.sql
-            source: WORKSPACE
-            base_parameters:
-              catalog: ${var.catalog}
-              schema:  ${var.schema}
-          job_cluster_key: jc
-
-        - task_key: etl_demo
-          depends_on:
-            - task_key: create_demo_table
-          notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.py
-            source: WORKSPACE
-            base_parameters:
-              catalog: ${var.catalog}
-              schema:  ${var.schema}
-          job_cluster_key: jc
-
-        - task_key: transform_sales
-          depends_on:
-            - task_key: etl_demo
-          notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.sql
-            source: WORKSPACE
-            base_parameters:
-              catalog: ${var.catalog}
-              schema:  ${var.schema}
-          job_cluster_key: jc
-
       job_clusters:
         - job_cluster_key: jc
           new_cluster:
-            spark_version: "13.3.x-scala2.12"    # pick any supported LTS
-            node_type_id: "Standard_DS3_v2"      # any small node type for POC
+            spark_version: "13.3.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
             num_workers: 1
             data_security_mode: SINGLE_USER
+      tasks:
+        - task_key: create_demo_table
+          notebook_task:
+            # points to the WORKSPACE copy the directories resource created
+            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.sql
+            source: WORKSPACE
+            base_parameters: { catalog: ${var.catalog}, schema: ${var.schema} }
+          job_cluster_key: jc
+
+        - task_key: etl_demo
+          depends_on: [{ task_key: create_demo_table }]
+          notebook_task:
+            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.py
+            source: WORKSPACE
+            base_parameters: { catalog: ${var.catalog}, schema: ${var.schema} }
+          job_cluster_key: jc
+
+        - task_key: transform_sales
+          depends_on: [{ task_key: etl_demo }]
+          notebook_task:
+            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.sql
+            source: WORKSPACE
+            base_parameters: { catalog: ${var.catalog}, schema: ${var.schema} }
+          job_cluster_key: jc
 
 targets:
   dev:
     default: true
     variables:
-      catalog: hive_metastore   # or 'main' if UC
+      catalog: hive_metastore
       schema: demo_dev
-    overrides:
-      # Example of per-env tweaks
-      resources.jobs.etl_demo_job.name: ${bundle.name}-dev-etl
+    # ❌ remove 'overrides' (unsupported); do overrides in-place like below
+    resources:
+      jobs:
+        etl_demo_job:
+          name: ${bundle.name}-dev-etl
 
   qa:
     variables:
