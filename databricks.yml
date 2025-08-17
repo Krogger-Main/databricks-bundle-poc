@@ -2,6 +2,7 @@ bundle:
   name: dbx-bundle-poc
 
 workspace:
+  # Put bundle under your user folder (private, not Shared)
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
 variables:
@@ -16,7 +17,6 @@ resources:
       name: ${bundle.name}-${bundle.target}-etl
       tags:
         env: ${bundle.target}
-
       job_clusters:
         - job_cluster_key: jc
           new_cluster:
@@ -24,38 +24,38 @@ resources:
             node_type_id: "Standard_DS3_v2"
             num_workers: 1
             data_security_mode: SINGLE_USER
-
       tasks:
         - task_key: create_demo_table
-          job_cluster_key: jc
           notebook_task:
-            source: GIT
-            notebook_path: notebooks/00_create_demo_table.py
+            # ✅ must be .ipynb or .dbc (not .sql)
+            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.ipynb
+            source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
+          job_cluster_key: jc
 
         - task_key: etl_demo
           depends_on:
             - task_key: create_demo_table
-          job_cluster_key: jc
           notebook_task:
-            source: GIT
-            notebook_path: notebooks/10_etl_demo.py
+            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.ipynb
+            source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
+          job_cluster_key: jc
 
         - task_key: transform_sales
           depends_on:
             - task_key: etl_demo
-          job_cluster_key: jc
           notebook_task:
-            source: GIT
-            notebook_path: notebooks/20_transform_sales.py
+            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.ipynb
+            source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
+          job_cluster_key: jc
 
 targets:
   dev:
