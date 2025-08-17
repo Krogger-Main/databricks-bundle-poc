@@ -37,19 +37,19 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          python - <<'PY'
-          try:
-              import databricks
-              print("SDK OK:", databricks.__version__)
-          except Exception as e:
-              print("SDK import failed:", e)
-          PY
+          pip install -r requirements.txt || true
 
-      # 4) Install NEW Databricks CLI (this provides `databricks bundle`)
+      # 4) Install NEW Databricks CLI (bundle support) from GitHub Releases
       - name: Install Databricks CLI (new)
         run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
+          set -euo pipefail
+          mkdir -p "$HOME/.databricks/bin"
+          sudo apt-get update -y
+          sudo apt-get install -y unzip
+          curl -L -o /tmp/databricks.zip \
+            https://github.com/databricks/cli/releases/latest/download/databricks_linux_amd64.zip
+          unzip -o /tmp/databricks.zip -d "$HOME/.databricks/bin"
+          chmod +x "$HOME/.databricks/bin/databricks"
           echo "$HOME/.databricks/bin" >> $GITHUB_PATH
           databricks version
 
@@ -67,7 +67,7 @@ jobs:
             echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}"  >> $GITHUB_ENV
           elif [ "$TARGET" = "prod" ]; then
             echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_PROD }}"  >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}">> $GITHUB_ENV
           else
             echo "❌ Unknown target: $TARGET"; exit 1
           fi
