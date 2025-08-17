@@ -122,4 +122,4 @@ jobs:
       # 8) Optionally run the job (respects your run_job input)
       - name: Run job after deploy
         if: ${{ github.event.inputs.run_job == 'true' }}
-        run: databricks bundle run etl_demo_job --target "$TARGET" --wait
+        run: databricks bundle run etl_demo_job --target "$TARGET"
