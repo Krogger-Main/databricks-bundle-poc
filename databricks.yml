@@ -1,8 +1,8 @@
 bundle:
   name: dbx-bundle-poc
 
+# Put bundle under your user folder (change username/email if needed)
 workspace:
-  # Put bundle under your user folder (private, not Shared)
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
 variables:
@@ -11,6 +11,7 @@ variables:
   schema:
     default: demo
 
+# Sync local notebooks to the workspace
 resources:
   jobs:
     etl_demo_job:
@@ -27,8 +28,7 @@ resources:
       tasks:
         - task_key: create_demo_table
           notebook_task:
-            # ✅ must be .ipynb or .dbc (not .sql)
-            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.ipynb
+            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.sql
             source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
@@ -36,10 +36,9 @@ resources:
           job_cluster_key: jc
 
         - task_key: etl_demo
-          depends_on:
-            - task_key: create_demo_table
+          depends_on: [{ task_key: create_demo_table }]
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.ipynb
+            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.py   # ✅ Python script
             source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
@@ -47,10 +46,9 @@ resources:
           job_cluster_key: jc
 
         - task_key: transform_sales
-          depends_on:
-            - task_key: etl_demo
+          depends_on: [{ task_key: etl_demo }]
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.ipynb
+            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.sql
             source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
