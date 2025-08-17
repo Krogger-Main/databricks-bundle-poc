@@ -4,121 +4,60 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Environment to deploy (dev | qa | prod)"
+        description: "Choose environment"
         required: true
-        default: "dev"
+        default: dev
         type: choice
-        options: [dev, qa, prod]
-      run_job:
-        description: "Run the job after deploy?"
-        required: true
-        default: "true"
-        type: choice
-        options: ["true", "false"]
+        options:
+          - dev
+          - qa
+          - prod
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # 1) Checkout the repo
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Setup Python with pip cache using requirements.txt
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          cache: "pip"
-          cache-dependency-path: "requirements.txt"
-
-      # 3) Install Python deps (SDK only; bundles use the new CLI below)
-      - name: Install Python dependencies
+      # Install CLI
+      - name: Install Databricks CLI
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
+          curl -L https://github.com/databricks/cli/releases/download/v0.264.2/databricks_cli_0.264.2_linux_amd64.tar.gz -o /tmp/databricks.tar.gz
+          tar -xzf /tmp/databricks.tar.gz -C /usr/local/bin
+          chmod +x /usr/local/bin/databricks
+          databricks version
 
-      # 4) Install NEW Databricks CLI (bundle support) via GitHub Releases (zip/tar.gz safe)
-      - name: Install Databricks CLI (new)
-        run: |
-          set -euo pipefail
-          sudo apt-get update -y
-          sudo apt-get install -y jq unzip tar file
-
-          # Get latest linux_amd64 asset URL (zip or tar.gz)
-          ASSET_URL="$(curl -s https://api.github.com/repos/databricks/cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("linux_amd64\\.(zip|tar\\.gz)$")) | .browser_download_url' | head -n1)"
-
-          if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
-            echo "❌ Could not determine Databricks CLI asset URL from GitHub Releases."
-            exit 1
-          fi
-          echo "Downloading Databricks CLI from: $ASSET_URL"
-
-          # Download
-          curl -L -o /tmp/databricks_cli_asset "$ASSET_URL"
-
-          # Extract to temp folder
-          mkdir -p /tmp/dbc_extracted
-          if [[ "$ASSET_URL" == *.zip ]]; then
-            unzip -o /tmp/databricks_cli_asset -d /tmp/dbc_extracted
-          else
-            tar -xzf /tmp/databricks_cli_asset -C /tmp/dbc_extracted
-          fi
-
-          # Find the binary regardless of nested structure
-          BIN_PATH="$(find /tmp/dbc_extracted -type f -name databricks | head -n1)"
-          if [ -z "$BIN_PATH" ]; then
-            echo "❌ Could not find 'databricks' binary in extracted assets."
-            find /tmp/dbc_extracted -maxdepth 3 -type f -print
-            exit 1
-          fi
-
-          # Install to ~/.databricks/bin and make executable
-          mkdir -p "$HOME/.databricks/bin"
-          cp "$BIN_PATH" "$HOME/.databricks/bin/databricks"
-          chmod +x "$HOME/.databricks/bin/databricks"
-
-          # Verify NOW using full path (PATH updates only apply in next steps)
-          "$HOME/.databricks/bin/databricks" version
-
-          # Make available to subsequent steps
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
-
-      # 5) Map secrets to env based on target and export globally (YOUR secret names kept)
+      # Select secrets based on target
       - name: Set environment variables
         run: |
           TARGET="${{ github.event.inputs.target }}"
           echo "TARGET=$TARGET" >> $GITHUB_ENV
 
           if [ "$TARGET" = "dev" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV }}"   >> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV }}" >> $GITHUB_ENV
             echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_DEV }}" >> $GITHUB_ENV
           elif [ "$TARGET" = "qa" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_QA }}"    >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}"  >> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_QA }}" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}" >> $GITHUB_ENV
           elif [ "$TARGET" = "prod" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_PROD }}"  >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}">> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_PROD }}" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}" >> $GITHUB_ENV
           else
-            echo "❌ Unknown target: $TARGET"; exit 1
+            echo "❌ Unknown target: $TARGET"
+            exit 1
           fi
 
-          # quick sanity check
+      - name: Sanity check
+        run: |
           if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
-            echo "❌ Missing DATABRICKS_* secrets for target '$TARGET'"; exit 1
+            echo "❌ Missing Databricks secrets for $TARGET"
+            exit 1
           fi
+          echo "✅ Using Databricks host: $DATABRICKS_HOST"
 
-      # 6) Validate bundle
-      - name: Validate bundle
-        run: databricks bundle validate --target "$TARGET"
-
-      # 7) Deploy bundle
+      # Example: Bundle deploy
       - name: Deploy bundle
-        run: databricks bundle deploy --target "$TARGET"
-
-      # 8) Optionally run the job
-      - name: Run job after deploy
-        if: ${{ github.event.inputs.run_job == 'true' }}
-        run: databricks bundle run etl_demo_job --target "$TARGET" --wait
+        run: |
+          databricks bundle validate
+          databricks bundle deploy
