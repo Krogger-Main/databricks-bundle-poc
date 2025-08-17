@@ -53,22 +53,22 @@ jobs:
           echo "TARGET=$TARGET" >> $GITHUB_ENV
 
           if [ "$TARGET" = "dev" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_DEV_HOST }}"   >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_DEV_TOKEN }}" >> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV }}"   >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_DEV }}" >> $GITHUB_ENV
           elif [ "$TARGET" = "qa" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_QA_HOST }}"    >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_QA_TOKEN }}"  >> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_QA }}"    >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}"  >> $GITHUB_ENV
           elif [ "$TARGET" = "prod" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_PROD_HOST }}"  >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_PROD_TOKEN }}">> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_PROD }}"  >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}">> $GITHUB_ENV
           else
             echo "❌ Unknown target: $TARGET"; exit 1
           fi
 
           # mask values in logs
-          echo "::add-mask::${{ secrets.DATABRICKS_DEV_TOKEN }}"
-          echo "::add-mask::${{ secrets.DATABRICKS_QA_TOKEN }}"
-          echo "::add-mask::${{ secrets.DATABRICKS_PROD_TOKEN }}"
+          echo "::add-mask::${{ secrets.DATABRICKS_TOKEN_DEV }}"
+          echo "::add-mask::${{ secrets.DATABRICKS_TOKEN_QA }}"
+          echo "::add-mask::${{ secrets.DATABRICKS_TOKEN_PROD }}"
 
           # quick sanity check
           if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
