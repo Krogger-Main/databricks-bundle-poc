@@ -1,0 +1,113 @@
+name: Deploy Databricks Bundle GenAI
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deployment target"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout repo
+      - uses: actions/checkout@v4
+
+      # 2) Setup Python (for Databricks CLI + jq)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3) Install Databricks CLI
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+
+      # 4) Set environment from target
+      - name: Set environment variables
+        run: |
+          echo "TARGET=${{ github.event.inputs.target }}" >> $GITHUB_ENV
+          if [ "${{ github.event.inputs.target }}" = "dev" ]; then
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV }}"   >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_DEV }}" >> $GITHUB_ENV
+          elif [ "${{ github.event.inputs.target }}" = "qa" ]; then
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_QA }}"    >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}"  >> $GITHUB_ENV
+          elif [ "${{ github.event.inputs.target }}" = "prod" ]; then
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_PROD }}"  >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_PROD }}" >> $GITHUB_ENV
+          else
+            echo "❌ Unknown target"; exit 1
+          fi
+
+      # 5) Validate bundle
+      - name: Validate Databricks Bundle
+        run: databricks bundle validate --target "$TARGET"
+
+      # 6) Deploy bundle
+      - name: Deploy Databricks Bundle
+        run: databricks bundle deploy --target "$TARGET"
+
+      # 7) Run the job and capture run id
+      - name: Run Databricks Job
+        run: |
+          RUN_INFO=$(databricks bundle run etl_demo_job --target "$TARGET" -o json)
+          echo "$RUN_INFO" > run_info.json
+          echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV
+
+      # 8) Save run output/logs
+      - name: Get Job Output
+        run: |
+          databricks runs get-output --run-id $RUN_ID > run_output.json
+          cat run_output.json
+
+      # 9) Summarize logs using GenAI
+      - name: Summarize Logs with GenAI
+        run: |
+          SUMMARY=$(jq -r '. | tostring' run_output.json | \
+            curl -s -X POST https://api.openai.com/v1/chat/completions \
+              -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "model": "gpt-4o-mini",
+                "messages": [
+                  {"role": "system", "content": "You are a DevOps assistant. Summarize Databricks job logs and suggest root cause fixes."},
+                  {"role": "user", "content": "'"$(cat run_output.json | jq -c .)"'"}
+                ]
+              }' | jq -r '.choices[0].message.content')
+
+          echo "$SUMMARY" > job_summary.txt
+          cat job_summary.txt
+
+      # 10) Generate release notes with GenAI
+      - name: Generate Release Notes
+        run: |
+          NOTES=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+              -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "model": "gpt-4o-mini",
+                "messages": [
+                  {"role": "system", "content": "You are a release manager. Write concise release notes for a Databricks CI/CD deployment."},
+                  {"role": "user", "content": "Deployment Target: $TARGET. Logs: '"$(cat run_output.json | jq -c .)"'"}
+                ]
+              }' | jq -r '.choices[0].message.content')
+
+          echo "$NOTES" > release_notes.md
+          cat release_notes.md
+
+      # 11) Upload artifacts for client review
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployment-artifacts
+          path: |
+            run_output.json
+            job_summary.txt
+            release_notes.md
