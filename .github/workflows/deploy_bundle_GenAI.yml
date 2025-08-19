@@ -111,11 +111,11 @@ jobs:
         run: databricks bundle deploy --target "$TARGET"
 
      # 8) Run the job and capture run id
-      #- name: Run Databricks Job
-       # run: |
-          #RUN_INFO=$(databricks bundle run etl_demo_job --target "$TARGET" -o json)
-          #echo "$RUN_INFO" > run_info.json
-          #echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV 
+      - name: Run Databricks Job
+        run: |
+          RUN_INFO=$(databricks bundle run etl_demo_job --target "$TARGET" -o json)
+          echo "$RUN_INFO" > run_info.json
+          echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV 
 
       # 9) Save run output/logs
       - name: Get Job Output
