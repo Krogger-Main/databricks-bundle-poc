@@ -12,6 +12,13 @@ on:
           - dev
           - qa
           - prod
+          
+      run_job:
+        description: "Run the job after deploy?"
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
 
 jobs:
   deploy:
