@@ -29,15 +29,24 @@ jobs:
       - uses: actions/checkout@v4
 
       # 2) Setup Python (for Databricks CLI + jq)
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
 
-      # 3) Install Databricks CLI
+      # 3) Install Python deps (optional for bundles)
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+
+      # 4) Install Databricks CLI
       - name: Install Databricks CLI
         run: pip install databricks-cli
 
-      # 4) Set environment from target
+      # 5) Set environment from target
       - name: Set environment variables
         run: |
           echo "TARGET=${{ github.event.inputs.target }}" >> $GITHUB_ENV
@@ -54,28 +63,28 @@ jobs:
             echo "❌ Unknown target"; exit 1
           fi
 
-      # 5) Validate bundle
+      # 6) Validate bundle
       - name: Validate Databricks Bundle
         run: databricks bundle validate --target "$TARGET"
 
-      # 6) Deploy bundle
+      # 7) Deploy bundle
       - name: Deploy Databricks Bundle
         run: databricks bundle deploy --target "$TARGET"
 
-      # 7) Run the job and capture run id
+      # 8) Run the job and capture run id
       - name: Run Databricks Job
         run: |
           RUN_INFO=$(databricks bundle run etl_demo_job --target "$TARGET" -o json)
           echo "$RUN_INFO" > run_info.json
           echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV
 
-      # 8) Save run output/logs
+      # 9) Save run output/logs
       - name: Get Job Output
         run: |
           databricks runs get-output --run-id $RUN_ID > run_output.json
           cat run_output.json
 
-      # 9) Summarize logs using GenAI
+      # 10) Summarize logs using GenAI
       - name: Summarize Logs with GenAI
         run: |
           SUMMARY=$(jq -r '. | tostring' run_output.json | \
@@ -93,7 +102,7 @@ jobs:
           echo "$SUMMARY" > job_summary.txt
           cat job_summary.txt
 
-      # 10) Generate release notes with GenAI
+      # 11) Generate release notes with GenAI
       - name: Generate Release Notes
         run: |
           NOTES=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
@@ -110,7 +119,7 @@ jobs:
           echo "$NOTES" > release_notes.md
           cat release_notes.md
 
-      # 11) Upload artifacts for client review
+      # 12) Upload artifacts for client review
       - uses: actions/upload-artifact@v4
         with:
           name: deployment-artifacts
