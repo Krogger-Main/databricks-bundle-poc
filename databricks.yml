@@ -27,7 +27,7 @@ resources:
       tasks:
         - task_key: create_demo_table
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/00_create_demo_table.ipynb
+            notebook_path: ${workspace.root_path}/files/notebooks/00_create_demo_table
             source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
@@ -38,7 +38,7 @@ resources:
           depends_on:
             - task_key: create_demo_table
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/10_etl_demo.ipynb
+            notebook_path: ${workspace.root_path}/files/notebooks/10_etl_demo
             source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
@@ -49,7 +49,7 @@ resources:
           depends_on:
             - task_key: etl_demo
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/20_transform_sales.ipynb
+            notebook_path: ${workspace.root_path}/files/notebooks/20_transform_sales
             source: WORKSPACE
             base_parameters:
               catalog: ${var.catalog}
