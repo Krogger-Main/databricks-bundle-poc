@@ -101,8 +101,13 @@ jobs:
           else
             echo "❌ Unknown target"; exit 1
           fi
-
-      # 6) Validate bundle
+      # 6.1) Convert ipynb → py (NEW STEP)
+      - name: Convert ipynb → py
+        run: |
+          pip install jupyter
+          jupyter nbconvert --to script databricks/notebooks/*.ipynb
+          
+      # 6.2) Validate bundle
       - name: Validate Databricks Bundle
         run: databricks bundle validate --target "$TARGET"
 
