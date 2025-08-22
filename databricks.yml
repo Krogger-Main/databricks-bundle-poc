@@ -4,12 +4,13 @@ bundle:
 workspace:
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
-include:
-  - conf/*.yml
-
 variables:
-  catalog: main        # default
-  schema: default      # default
+  catalog:
+    description: "Catalog to use"
+    default: main
+  schema:
+    description: "Schema to use"
+    default: default
 
 resources:
   jobs:
@@ -17,47 +18,20 @@ resources:
       name: dbx-bundle-poc-${bundle.target}-etl
       tasks:
         - task_key: create_demo_table
+          description: "Create demo table"
           notebook_task:
-            notebook_path: ${workspace.root_path}/files/notebooks/00_create_demo_table.py
-        - task_key: etl_demo
-          depends_on: [create_demo_table]
-          notebook_task:
-            notebook_path: ${workspace.root_path}/files/notebooks/10_etl_demo.py
+            notebook_path: ./notebooks/00_create_demo_table.py
+
         - task_key: transform_sales
-          depends_on: [etl_demo]
+          description: "Transform sales data"
           notebook_task:
-            notebook_path: ${workspace.root_path}/files/notebooks/20_transform_sales.py
+            notebook_path: ./notebooks/01_transform_sales.py
+          depends_on:
+            - task_key: create_demo_table
 
-  files:
-    notebooks:
-      source: notebooks
-      path: ${workspace.root_path}/files/notebooks
-
-targets:
-  dev:
-    default: true
-    workspace:
-      host: ${env.DATABRICKS_HOST}
-    run_as:
-      user_name: rohitazure9@gmail.com
-    variables:
-      catalog: dev_catalog
-      schema: dev_schema
-
-  qa:
-    workspace:
-      host: ${env.DATABRICKS_HOST}
-    run_as:
-      user_name: rohitazure9@gmail.com
-    variables:
-      catalog: qa_catalog
-      schema: qa_schema
-
-  prod:
-    workspace:
-      host: ${env.DATABRICKS_HOST}
-    run_as:
-      user_name: rohitazure9@gmail.com
-    variables:
-      catalog: prod_catalog
-      schema: prod_schema
+        - task_key: aggregate_sales
+          description: "Aggregate sales data"
+          notebook_task:
+            notebook_path: ./notebooks/02_aggregate_sales.py
+          depends_on:
+            - task_key: transform_sales
