@@ -5,11 +5,11 @@ workspace:
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
 include:
-  - conf/*.yml   # optional, if you break out environment-specific configs
+  - conf/*.yml
 
 variables:
-  catalog: main
-  schema: default
+  catalog: main        # default
+  schema: default      # default
 
 resources:
   jobs:
@@ -40,15 +40,24 @@ targets:
       host: ${env.DATABRICKS_HOST}
     run_as:
       user_name: rohitazure9@gmail.com
+    variables:
+      catalog: dev_catalog
+      schema: dev_schema
 
   qa:
     workspace:
       host: ${env.DATABRICKS_HOST}
     run_as:
       user_name: rohitazure9@gmail.com
+    variables:
+      catalog: qa_catalog
+      schema: qa_schema
 
   prod:
     workspace:
       host: ${env.DATABRICKS_HOST}
     run_as:
       user_name: rohitazure9@gmail.com
+    variables:
+      catalog: prod_catalog
+      schema: prod_schema
