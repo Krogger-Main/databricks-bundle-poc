@@ -1,7 +1,9 @@
 targets:
   prod:
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+    run_as:
+      user_name: rohitazure9@gmail.com
     variables:
-      catalog: hive_metastore
-      schema: demo_prod
-    overrides:
-      resources.jobs.etl_demo_job.name: dbx-bundle-poc-prod-etl
+      catalog: prod_catalog
+      schema: prod_schema
