@@ -1,8 +1,10 @@
 targets:
   dev:
-    default: true   # mark dev as default target
+    default: true
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+    run_as:
+      user_name: rohitazure9@gmail.com
     variables:
-      catalog: hive_metastore   # or 'main' if you have Unity Catalog
-      schema: demo_dev
-    overrides:
-      resources.jobs.etl_demo_job.name: dbx-bundle-poc-dev-etl
+      catalog: dev_catalog
+      schema: dev_schema
