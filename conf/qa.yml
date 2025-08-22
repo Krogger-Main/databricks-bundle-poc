@@ -1,7 +1,9 @@
 targets:
   qa:
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+    run_as:
+      user_name: rohitazure9@gmail.com
     variables:
-      catalog: hive_metastore   # use UC catalog if available
-      schema: demo_qa
-    overrides:
-      resources.jobs.etl_demo_job.name: dbx-bundle-poc-qa-etl
+      catalog: qa_catalog
+      schema: qa_schema
