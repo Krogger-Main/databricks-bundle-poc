@@ -2,77 +2,53 @@ bundle:
   name: dbx-bundle-poc
 
 workspace:
-  # Put bundle under your user folder
   root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
 
+include:
+  - conf/*.yml   # optional, if you break out environment-specific configs
+
 variables:
-  catalog:
-    default: hive_metastore
-  schema:
-    default: demo
+  catalog: main
+  schema: default
 
 resources:
   jobs:
     etl_demo_job:
-      name: ${bundle.name}-${bundle.target}-etl
-      tags:
-        env: ${bundle.target}
-      job_clusters:
-        - job_cluster_key: jc
-          new_cluster:
-            spark_version: "13.3.x-scala2.12"
-            node_type_id: "Standard_DS3_v2"
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+      name: dbx-bundle-poc-${bundle.target}-etl
       tasks:
         - task_key: create_demo_table
           notebook_task:
             notebook_path: ${workspace.root_path}/files/notebooks/00_create_demo_table.py
-            source: WORKSPACE
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-          job_cluster_key: jc
-
         - task_key: etl_demo
-          depends_on:
-            - task_key: create_demo_table
+          depends_on: [create_demo_table]
           notebook_task:
             notebook_path: ${workspace.root_path}/files/notebooks/10_etl_demo.py
-            source: WORKSPACE
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-          job_cluster_key: jc
-
         - task_key: transform_sales
-          depends_on:
-            - task_key: etl_demo
+          depends_on: [etl_demo]
           notebook_task:
             notebook_path: ${workspace.root_path}/files/notebooks/20_transform_sales.py
-            source: WORKSPACE
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-          job_cluster_key: jc
+
+  files:
+    notebooks:
+      source: notebooks
+      path: ${workspace.root_path}/files/notebooks
 
 targets:
   dev:
     default: true
-    variables:
-      catalog: hive_metastore
-      schema: demo_dev
-    resources:
-      jobs:
-        etl_demo_job:
-          name: ${bundle.name}-dev-etl
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+    run_as:
+      user_name: rohitazure9@gmail.com
 
   qa:
-    variables:
-      catalog: hive_metastore
-      schema: demo_qa
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+    run_as:
+      user_name: rohitazure9@gmail.com
 
   prod:
-    variables:
-      catalog: hive_metastore
-      schema: demo_prod
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+    run_as:
+      user_name: rohitazure9@gmail.com
