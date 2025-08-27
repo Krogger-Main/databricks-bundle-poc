@@ -2,7 +2,7 @@ bundle:
   name: dbx-bundle-poc
 
 workspace:
-  root_path: /Workspace/Users/rohitazure9@gmail.com/.bundle/${bundle.name}/${bundle.target}
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
 
 variables:
   catalog:
@@ -11,6 +11,20 @@ variables:
   schema:
     description: "Schema to use"
     default: default
+
+targets:
+  dev:
+    workspace:
+      host: ${env.DATABRICKS_HOST_DEV}
+      token: ${env.DATABRICKS_TOKEN_DEV}
+  qa:
+    workspace:
+      host: ${env.DATABRICKS_HOST_QA}
+      token: ${env.DATABRICKS_TOKEN_QA}
+  prod:
+    workspace:
+      host: ${env.DATABRICKS_HOST_PROD}
+      token: ${env.DATABRICKS_TOKEN_PROD}
 
 resources:
   jobs:
