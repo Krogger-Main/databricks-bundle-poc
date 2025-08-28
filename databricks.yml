@@ -13,18 +13,9 @@ variables:
     default: default
 
 targets:
-  dev:
-    workspace:
-      host: ${env.DATABRICKS_HOST_DEV}
-      token: ${env.DATABRICKS_TOKEN_DEV}
-  qa:
-    workspace:
-      host: ${env.DATABRICKS_HOST_QA}
-      token: ${env.DATABRICKS_TOKEN_QA}
-  prod:
-    workspace:
-      host: ${env.DATABRICKS_HOST_PROD}
-      token: ${env.DATABRICKS_TOKEN_PROD}
+  dev: {}
+  qa: {}
+  prod: {}
 
 resources:
   jobs:
@@ -32,19 +23,16 @@ resources:
       name: dbx-bundle-poc-${bundle.target}-etl
       tasks:
         - task_key: create_demo_table
-          description: "Create demo table"
           notebook_task:
             notebook_path: ./notebooks/00_create_demo_table.py
 
         - task_key: transform_sales
-          description: "Transform sales data"
           notebook_task:
             notebook_path: ./notebooks/01_transform_sales.py
           depends_on:
             - task_key: create_demo_table
 
         - task_key: aggregate_sales
-          description: "Aggregate sales data"
           notebook_task:
             notebook_path: ./notebooks/02_aggregate_sales.py
           depends_on:
