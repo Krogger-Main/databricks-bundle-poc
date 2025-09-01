@@ -7,21 +7,15 @@ workspace:
 variables:
   catalog:
     description: "Catalog to use"
-    default: main
+    default: kroger_poc       # 🔹 Updated from 'main'
   schema:
     description: "Schema to use"
-    default: dev_schema   # fallback if target not overridden
+    default: default
 
 targets:
-  dev:
-    variables:
-      schema: dev_schema
-  qa:
-    variables:
-      schema: qa_schema
-  prod:
-    variables:
-      schema: prod_schema
+  dev: {}
+  qa: {}
+  prod: {}
 
 resources:
   jobs:
