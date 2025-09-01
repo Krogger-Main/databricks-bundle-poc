@@ -10,12 +10,18 @@ variables:
     default: main
   schema:
     description: "Schema to use"
-    default: default
+    default: dev_schema   # fallback if target not overridden
 
 targets:
-  dev: {}
-  qa: {}
-  prod: {}
+  dev:
+    variables:
+      schema: dev_schema
+  qa:
+    variables:
+      schema: qa_schema
+  prod:
+    variables:
+      schema: prod_schema
 
 resources:
   jobs:
