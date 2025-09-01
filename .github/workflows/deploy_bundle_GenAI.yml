@@ -116,20 +116,21 @@ jobs:
       - name: Deploy Databricks Bundle
         run: databricks bundle deploy --target "$TARGET"
 
-     # 8) Run the job and capture run id
+     # 8) Run the job and capture run id + output
       - name: Run Databricks Job
         run: |
           RUN_INFO=$(databricks bundle run etl_demo_job --target "$TARGET" -o json)
           echo "$RUN_INFO" > run_info.json
-          echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV 
 
-      # 9) Save run output/logs
-      - name: Get Job Output
-        run: |
-          databricks runs get-output --run-id $RUN_ID > run_output.json
+          # Capture run_id for downstream use
+          echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV
+
+          # Save full run output
+          echo "$RUN_INFO" > run_output.json
           cat run_output.json
 
-      # 10) Summarize logs using GenAI
+
+      # 9) Summarize logs using GenAI
       - name: Summarize Logs with GenAI
         run: |
           SUMMARY=$(jq -r '. | tostring' run_output.json | \
@@ -147,7 +148,7 @@ jobs:
           echo "$SUMMARY" > job_summary.txt
           cat job_summary.txt
 
-      # 11) Generate release notes with GenAI
+      # 10) Generate release notes with GenAI
       - name: Generate Release Notes
         run: |
           NOTES=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
@@ -164,7 +165,7 @@ jobs:
           echo "$NOTES" > release_notes.md
           cat release_notes.md
 
-      # 12) Upload artifacts for client review
+      # 11) Upload artifacts for client review
       - uses: actions/upload-artifact@v4
         with:
           name: deployment-artifacts
