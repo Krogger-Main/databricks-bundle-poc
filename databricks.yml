@@ -36,16 +36,6 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
 
-        - task_key: transform_sales
-          description: "Transform sales data"
-          notebook_task:
-            notebook_path: ./notebooks/20_transform_sales.ipynb
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-          depends_on:
-            - task_key: create_demo_table
-
         - task_key: etl_demo
           description: "ETL Demo Pipeline"
           notebook_task:
@@ -54,4 +44,14 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
           depends_on:
-            - task_key: transform_sales
+            - task_key: create_demo_table
+
+        - task_key: transform_sales
+          description: "Transform sales data"
+          notebook_task:
+            notebook_path: ./notebooks/20_transform_sales.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          depends_on:
+            - task_key: etl_demo
