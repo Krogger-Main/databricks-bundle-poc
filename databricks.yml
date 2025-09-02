@@ -7,15 +7,21 @@ workspace:
 variables:
   catalog:
     description: "Catalog to use"
-    default: kroger_poc       # 🔹 Updated from 'main'
+    default: hive_metastore   # safe fallback
   schema:
     description: "Schema to use"
     default: default
 
 targets:
-  dev: {}
-  qa: {}
-  prod: {}
+  dev:
+    variables:
+      catalog: kroger_poc      # dev workspace has this catalog
+  qa:
+    variables:
+      catalog: kroger_poc_qa  # QA doesn’t have kroger_poc, fallback here
+  prod:
+    variables:
+      catalog: kroger_poc_prod      # if prod has access, keep this
 
 resources:
   jobs:
