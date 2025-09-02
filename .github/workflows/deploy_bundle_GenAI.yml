@@ -104,8 +104,9 @@ jobs:
       # 6.1) Convert ipynb → py
       - name: Convert ipynb → py
         run: |
-          pip install jupyter
-          jupyter nbconvert --to script notebooks/*.ipynb --output-dir notebooks/
+          pip install nbconvert
+          jupyter-nbconvert --to script notebooks/*.ipynb --output-dir notebooks/
+
 
           
       # 6.2) Validate bundle
