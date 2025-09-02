@@ -21,7 +21,7 @@ targets:
       catalog: kroger_poc_qa   # QA has its own catalog
   prod:
     variables:
-      catalog: kroger_poc_prod # Prod has its own catalog
+      catalog: kroger_poc_prod # prod catalog
 
 resources:
   jobs:
@@ -32,26 +32,29 @@ resources:
           description: "Create demo table"
           notebook_task:
             notebook_path: ./notebooks/00_create_demo_table.ipynb
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-
-        - task_key: etl_demo
-          description: "ETL Demo Pipeline"
-          notebook_task:
-            notebook_path: ./notebooks/10_etl_demo.ipynb
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-          depends_on:
-            - task_key: create_demo_table
+          environment:
+            variables:
+              DATABRICKS_BUNDLE_VAR_catalog: ${var.catalog}
+              DATABRICKS_BUNDLE_VAR_schema: ${var.schema}
 
         - task_key: transform_sales
           description: "Transform sales data"
           notebook_task:
             notebook_path: ./notebooks/20_transform_sales.ipynb
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
           depends_on:
-            - task_key: etl_demo
+            - task_key: create_demo_table
+          environment:
+            variables:
+              DATABRICKS_BUNDLE_VAR_catalog: ${var.catalog}
+              DATABRICKS_BUNDLE_VAR_schema: ${var.schema}
+
+        - task_key: etl_demo
+          description: "ETL Demo Pipeline"
+          notebook_task:
+            notebook_path: ./notebooks/10_etl_demo.ipynb
+          depends_on:
+            - task_key: transform_sales
+          environment:
+            variables:
+              DATABRICKS_BUNDLE_VAR_catalog: ${var.catalog}
+              DATABRICKS_BUNDLE_VAR_schema: ${var.schema}
