@@ -16,15 +16,12 @@ targets:
   dev:
     variables:
       catalog: kroger_poc
-      schema: default
   qa:
     variables:
       catalog: kroger_poc_qa
-      schema: default
   prod:
     variables:
       catalog: kroger_poc_prod
-      schema: default
 
 resources:
   jobs:
@@ -36,16 +33,16 @@ resources:
           notebook_task:
             notebook_path: ./notebooks/00_create_demo_table.ipynb
 
-        - task_key: transform_sales
-          description: "Transform sales data"
-          notebook_task:
-            notebook_path: ./notebooks/20_transform_sales.ipynb
-          depends_on:
-            - task_key: create_demo_table
-
         - task_key: etl_demo
           description: "ETL Demo Pipeline"
           notebook_task:
             notebook_path: ./notebooks/10_etl_demo.ipynb
           depends_on:
-            - task_key: transform_sales
+            - task_key: create_demo_table
+
+        - task_key: transform_sales
+          description: "Transform sales data"
+          notebook_task:
+            notebook_path: ./notebooks/20_transform_sales.ipynb
+          depends_on:
+            - task_key: etl_demo
