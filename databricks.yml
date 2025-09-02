@@ -15,13 +15,16 @@ variables:
 targets:
   dev:
     variables:
-      catalog: kroger_poc      # dev workspace has this catalog
+      catalog: kroger_poc
+      schema: default
   qa:
     variables:
-      catalog: kroger_poc_qa   # QA has its own catalog
+      catalog: kroger_poc_qa
+      schema: default
   prod:
     variables:
-      catalog: kroger_poc_prod # prod catalog
+      catalog: kroger_poc_prod
+      schema: default
 
 resources:
   jobs:
@@ -32,10 +35,6 @@ resources:
           description: "Create demo table"
           notebook_task:
             notebook_path: ./notebooks/00_create_demo_table.ipynb
-          environment:
-            variables:
-              DATABRICKS_BUNDLE_VAR_catalog: ${var.catalog}
-              DATABRICKS_BUNDLE_VAR_schema: ${var.schema}
 
         - task_key: transform_sales
           description: "Transform sales data"
@@ -43,10 +42,6 @@ resources:
             notebook_path: ./notebooks/20_transform_sales.ipynb
           depends_on:
             - task_key: create_demo_table
-          environment:
-            variables:
-              DATABRICKS_BUNDLE_VAR_catalog: ${var.catalog}
-              DATABRICKS_BUNDLE_VAR_schema: ${var.schema}
 
         - task_key: etl_demo
           description: "ETL Demo Pipeline"
@@ -54,7 +49,3 @@ resources:
             notebook_path: ./notebooks/10_etl_demo.ipynb
           depends_on:
             - task_key: transform_sales
-          environment:
-            variables:
-              DATABRICKS_BUNDLE_VAR_catalog: ${var.catalog}
-              DATABRICKS_BUNDLE_VAR_schema: ${var.schema}
