@@ -21,7 +21,7 @@ targets:
       catalog: kroger_poc_qa
   prod:
     variables:
-      catalog: kroger_poc_prod
+      catalog: databricks_poc_prod
 
 resources:
   jobs:
