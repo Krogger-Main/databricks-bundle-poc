@@ -21,7 +21,7 @@ targets:
       catalog: kroger_poc_qa
   prod:
     variables:
-      catalog: kroger-poc-prod
+      catalog: kroger_poc_prod
 
 resources:
   jobs:
