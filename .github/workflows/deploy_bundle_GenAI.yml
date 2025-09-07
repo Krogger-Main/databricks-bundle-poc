@@ -90,8 +90,8 @@ jobs:
         run: |
           echo "TARGET=${{ github.event.inputs.target }}" >> $GITHUB_ENV
           if [ "${{ github.event.inputs.target }}" = "dev" ]; then
-            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV }}"   >> $GITHUB_ENV
-            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_DEV }}" >> $GITHUB_ENV
+            echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_DEV_BITWISE }}"   >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_DEV_BITWISE }}" >> $GITHUB_ENV
           elif [ "${{ github.event.inputs.target }}" = "qa" ]; then
             echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST_QA }}"    >> $GITHUB_ENV
             echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN_QA }}"  >> $GITHUB_ENV
