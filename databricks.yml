@@ -15,7 +15,7 @@ variables:
 targets:
   dev:
     variables:
-      catalog: kroger_poc
+      catalog: krg_assessment_databricks_workspace
   qa:
     variables:
       catalog: kroger_poc_qa
