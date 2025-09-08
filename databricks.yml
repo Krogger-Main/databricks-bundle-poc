@@ -49,4 +49,4 @@ resources:
       continuous: false
       libraries:
         - notebook:
-            path: ./notebooks/dlt_sales_pipeline.py
+            path: ./notebooks/dlt_sales_pipeline.ipynb
