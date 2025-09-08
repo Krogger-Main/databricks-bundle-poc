@@ -7,7 +7,7 @@ workspace:
 variables:
   catalog:
     description: "Catalog to use"
-    default: hive_metastore
+    default: hive_metastore   # safe fallback
   schema:
     description: "Schema to use"
     default: default
@@ -29,24 +29,20 @@ resources:
       name: dbx-bundle-poc-${bundle.target}-etl
       tasks:
         - task_key: create_demo_table
+          description: "Create demo table"
           notebook_task:
             notebook_path: ./notebooks/00_create_demo_table.ipynb
+
         - task_key: etl_demo
+          description: "ETL Demo Pipeline"
           notebook_task:
             notebook_path: ./notebooks/10_etl_demo.ipynb
           depends_on:
             - task_key: create_demo_table
+
         - task_key: transform_sales
+          description: "Transform sales data"
           notebook_task:
             notebook_path: ./notebooks/20_transform_sales.ipynb
           depends_on:
             - task_key: etl_demo
-
-  pipelines:
-    sales_pipeline:
-      name: dbx-bundle-poc-${bundle.target}-pipeline
-      target: ${bundle.target}
-      continuous: false
-      libraries:
-        - notebook:
-            path: ./notebooks/dlt_sales_pipeline.ipynb
