@@ -7,7 +7,7 @@ workspace:
 variables:
   catalog:
     description: "Catalog to use"
-    default: hive_metastore   # safe fallback
+    #default: hive_metastore   # safe fallback
   schema:
     description: "Schema to use"
     default: default
@@ -15,7 +15,7 @@ variables:
 targets:
   dev:
     variables:
-      catalog: kroger_poc
+      catalog: kroger_poc_dev
   qa:
     variables:
       catalog: kroger_poc_qa
