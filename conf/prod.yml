@@ -3,7 +3,7 @@ targets:
     workspace:
       host: ${env.DATABRICKS_HOST}
     run_as:
-      user_name: rohitazure9@gmail.com
+      user_name: bhagbanmandal94@gmail.com
     variables:
       catalog: prod_catalog
       schema: prod_schema
