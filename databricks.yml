@@ -10,7 +10,7 @@ variables:
     #default: hive_metastore   # safe fallback
   schema:
     description: "Schema to use"
-    #default: default
+    default: default
 
 targets:
   dev:
