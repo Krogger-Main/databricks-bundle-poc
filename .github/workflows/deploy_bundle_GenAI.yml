@@ -28,7 +28,7 @@ jobs:
       # 1) Checkout repo
       - uses: actions/checkout@v4
 
-      # 2) Setup Python
+      # 2) Setup Python (for Databricks CLI + jq)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -36,28 +36,29 @@ jobs:
           cache: "pip"
           cache-dependency-path: "requirements.txt"
 
-      # 3) Install Python dependencies
+      # 3) Install Python deps (optional for bundles)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt || true
 
-      # 4) Install Databricks CLI (new)
-      - name: Install Databricks CLI
+      # 4) Install NEW Databricks CLI from GitHub releases
+      - name: Install Databricks CLI (new)
         run: |
           set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y jq unzip tar file
 
+          # Get latest linux_amd64 asset URL (zip or tar.gz)
           ASSET_URL="$(curl -s https://api.github.com/repos/databricks/cli/releases/latest \
             | jq -r '.assets[] | select(.name | test("linux_amd64\\.(zip|tar\\.gz)$")) | .browser_download_url' | head -n1)"
 
           if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
-            echo "❌ Could not determine Databricks CLI asset URL."
+            echo "❌ Could not determine Databricks CLI asset URL from GitHub Releases."
             exit 1
           fi
-
           echo "Downloading Databricks CLI from: $ASSET_URL"
+
           curl -L -o /tmp/databricks_cli_asset "$ASSET_URL"
 
           mkdir -p /tmp/dbc_extracted
@@ -69,17 +70,22 @@ jobs:
 
           BIN_PATH="$(find /tmp/dbc_extracted -type f -name databricks | head -n1)"
           if [ -z "$BIN_PATH" ]; then
-            echo "❌ Could not find 'databricks' binary."
+            echo "❌ Could not find 'databricks' binary in extracted assets."
+            find /tmp/dbc_extracted -maxdepth 3 -type f -print
             exit 1
           fi
 
           mkdir -p "$HOME/.databricks/bin"
           cp "$BIN_PATH" "$HOME/.databricks/bin/databricks"
           chmod +x "$HOME/.databricks/bin/databricks"
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
-          databricks version
 
-      # 5) Set environment based on target
+          # Verify immediately
+          "$HOME/.databricks/bin/databricks" version
+
+          # Make available to subsequent steps
+          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+
+      # 5) Set environment from target
       - name: Set environment variables
         run: |
           echo "TARGET=${{ github.event.inputs.target }}" >> $GITHUB_ENV
@@ -96,37 +102,41 @@ jobs:
             echo "❌ Unknown target"; exit 1
           fi
 
-      # 6.1) Convert notebooks (optional)
+      # 6.1) Convert ipynb → py
       - name: Convert ipynb → py
         run: |
           pip install nbconvert jupyter-core
           jupyter nbconvert --to script notebooks/*.ipynb --output-dir notebooks/
 
-      # 6.2) Set dynamic bundle name with branch
+      # 6.15) 📦 Set dynamic bundle name with branch
       - name: Set dynamic bundle name with branch
         run: |
           SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
-          echo "BUNDLE_NAME=databricks-bundle-${SAFE_BRANCH}-${{ github.event.inputs.target }}" >> $GITHUB_ENV
-          echo "✅ Bundle name set to: databricks-bundle-${SAFE_BRANCH}-${{ github.event.inputs.target }}"
+          echo "BUNDLE_NAME=dbx-bundle-poc-${SAFE_BRANCH}-${{ github.event.inputs.target }}" >> $GITHUB_ENV
+          echo "📦 Bundle name set to: dbx-bundle-poc-${SAFE_BRANCH}-${{ github.event.inputs.target }}"
 
-      # 6.3) Validate bundle
+      # 6.2) Validate bundle
       - name: Validate Databricks Bundle
         run: databricks bundle validate --target "$TARGET"
 
       # 7) Deploy bundle
       - name: Deploy Databricks Bundle
-        run: databricks bundle deploy --target "$TARGET"
+        run: databricks bundle deploy --target "${{ github.event.inputs.target }}"
 
-      # 8) Run job (optional)
+      # 8) Run the job and capture run id + output
       - name: Run Databricks Job
-        if: ${{ github.event.inputs.run_job == 'true' }}
         run: |
           RUN_INFO=$(databricks bundle run etl_demo_job --target "$TARGET" -o json)
           echo "$RUN_INFO" > run_info.json
-          echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV
-          cat run_info.json
 
-      # 9) Summarize logs (optional)
+          # Capture run_id for downstream use
+          echo "RUN_ID=$(jq -r '.run_id' run_info.json)" >> $GITHUB_ENV
+
+          # Save full run output
+          echo "$RUN_INFO" > run_output.json
+          cat run_output.json
+
+      # 9) Summarize logs using GenAI
       - name: Summarize Logs with GenAI
         run: |
           SUMMARY=$(jq -r '. | tostring' run_output.json | \
@@ -144,7 +154,7 @@ jobs:
           echo "$SUMMARY" > job_summary.txt
           cat job_summary.txt
 
-      # 10) Generate release notes
+      # 10) Generate release notes with GenAI
       - name: Generate Release Notes
         run: |
           NOTES=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
@@ -161,7 +171,7 @@ jobs:
           echo "$NOTES" > release_notes.md
           cat release_notes.md
 
-      # 11) Upload artifacts
+      # 11) Upload artifacts for client review
       - uses: actions/upload-artifact@v4
         with:
           name: deployment-artifacts
