@@ -106,11 +106,12 @@ jobs:
           pip install nbconvert jupyter-core
           jupyter nbconvert --to script notebooks/*.ipynb --output-dir notebooks/
 
-      # ✅ 6.15) Set Git branch env variable
+      # ✅ 6.15) Set GIT_BRANCH variable for Databricks bundle
       - name: Set GIT_BRANCH variable
         run: |
           SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
           echo "GIT_BRANCH=$SAFE_BRANCH" >> $GITHUB_ENV
+          echo "BUNDLE_VAR_git_branch=$SAFE_BRANCH" >> $GITHUB_ENV
           echo "📦 Git branch set to: $SAFE_BRANCH"
 
       # 6.2) Validate bundle
