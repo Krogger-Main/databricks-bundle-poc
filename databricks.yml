@@ -1,16 +1,19 @@
 bundle:
-  name: ${env.BUNDLE_NAME}
+  # ⚠️ Must be static — do NOT parameterize this!
+  name: dbx-bundle-poc
 
 workspace:
-  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+  # ✅ Dynamic per-branch deployment path
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}-${env.GIT_BRANCH}/${bundle.target}
 
 variables:
   catalog:
     description: "Catalog to use"
-    #default: hive_metastore   # safe fallback
   schema:
     description: "Schema to use"
     default: default
+  git_branch:
+    description: "Branch name to isolate deployments"
 
 targets:
   dev:
@@ -26,7 +29,8 @@ targets:
 resources:
   jobs:
     etl_demo_job:
-      name: dbx-bundle-poc-${bundle.target}-etl
+      # ✅ Job name now includes branch and target
+      name: dbx-bundle-poc-${env.GIT_BRANCH}-${bundle.target}-etl
       tasks:
         - task_key: create_demo_table
           description: "Create demo table"
