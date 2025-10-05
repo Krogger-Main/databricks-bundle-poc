@@ -107,8 +107,12 @@ jobs:
           pip install nbconvert jupyter-core
           jupyter nbconvert --to script notebooks/*.ipynb --output-dir notebooks/
 
-
-
+     # 6.3) set bundle name
+      - name: Set dynamic bundle name with branch
+        run: |
+          SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
+          echo "BUNDLE_NAME=databricks-bundle-${SAFE_BRANCH}-${{ github.event.inputs.target }}" >> $GITHUB_ENV
+          echo "✅ Bundle name set to: databricks-bundle-${SAFE_BRANCH}-${{ github.event.inputs.target }}"
 
           
       # 6.2) Validate bundle
