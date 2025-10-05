@@ -49,6 +49,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y jq unzip tar file
 
+          # Get latest linux_amd64 asset URL (zip or tar.gz)
           ASSET_URL="$(curl -s https://api.github.com/repos/databricks/cli/releases/latest \
             | jq -r '.assets[] | select(.name | test("linux_amd64\\.(zip|tar\\.gz)$")) | .browser_download_url' | head -n1)"
 
@@ -56,8 +57,8 @@ jobs:
             echo "❌ Could not determine Databricks CLI asset URL from GitHub Releases."
             exit 1
           fi
-
           echo "Downloading Databricks CLI from: $ASSET_URL"
+
           curl -L -o /tmp/databricks_cli_asset "$ASSET_URL"
 
           mkdir -p /tmp/dbc_extracted
@@ -70,6 +71,7 @@ jobs:
           BIN_PATH="$(find /tmp/dbc_extracted -type f -name databricks | head -n1)"
           if [ -z "$BIN_PATH" ]; then
             echo "❌ Could not find 'databricks' binary in extracted assets."
+            find /tmp/dbc_extracted -maxdepth 3 -type f -print
             exit 1
           fi
 
@@ -106,7 +108,7 @@ jobs:
           pip install nbconvert jupyter-core
           jupyter nbconvert --to script notebooks/*.ipynb --output-dir notebooks/
 
-      # ✅ 6.15) Set GIT_BRANCH variable for Databricks bundle
+      # ✅ 6.15) Set GIT_BRANCH and BUNDLE_VAR_git_branch
       - name: Set GIT_BRANCH variable
         run: |
           SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
