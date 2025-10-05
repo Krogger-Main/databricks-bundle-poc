@@ -4,7 +4,7 @@ targets:
     workspace:
       host: ${env.DATABRICKS_HOST}
     run_as:
-      user_name: bhagbanmandal94@gmail.com
+      service_principal_name: Databricks-SP
     variables:
       catalog: dev_catalog
       schema: dev_schema
