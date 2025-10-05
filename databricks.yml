@@ -1,5 +1,5 @@
 bundle:
-  name: dbx-bundle-poc
+  name: ${env.BUNDLE_NAME}
 
 workspace:
   root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
