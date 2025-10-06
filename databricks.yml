@@ -48,3 +48,11 @@ resources:
             notebook_path: ./notebooks/20_transform_sales.ipynb
           depends_on:
             - task_key: etl_demo
+
+        - task_key: test_notebook
+          description: "Simple test notebook to observe Terraform state changes"
+          notebook_task:
+            notebook_path: ./notebooks/30_test_notebook.ipynb
+          depends_on:
+            - task_key: transform_sales
+
